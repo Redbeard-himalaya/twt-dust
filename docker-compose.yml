@@ -1,0 +1,20 @@
+version: '2.4'
+
+services:
+  tw:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: twt_dust:latest
+    container_name: twt_dust
+    restart: "no"
+    environment:
+      ACCESS_TOKEN: ${ACCESS_TOKEN}
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET}
+      API_KEY: ${API_KEY}
+      API_KEY_SECRET: ${API_KEY_SECRET}
+    volumes:
+      - type: bind
+        source: ./
+        target: /app
+    entrypoint: /app/main.py
