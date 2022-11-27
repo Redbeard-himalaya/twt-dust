@@ -104,6 +104,8 @@ if __name__ == '__main__':
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
 
     logging.debug(f"ACCESS_TOKEN:        {os.getenv('ACCESS_TOKEN')}")
     logging.debug(f"ACCESS_TOKEN_SECRET: {os.getenv('ACCESS_TOKEN_SECRET')}")
@@ -116,11 +118,25 @@ if __name__ == '__main__':
                  api_key_secret=os.getenv('API_KEY_SECRET'))
 
     if args.command == 'search':
-        retults = td.popular_tweets(topic=args.popular, language=args.language)
-        logging.info(f"pupular tweets number: {len(results)}")
+        results = td.popular_tweets(topic=args.popular, language=args.language)
+        logging.info(f"topic: {args.popular}")
+        for r in results:
+            if 'media' in r['entities'].keys():
+                logging.info(f" id[{r['id']}] {r['entities']['media'][0]['url']} created_at[{r['created_at']}]")
+            else:
+                logging.info(f" id[{r['id']}] {r['entities']['urls'][0]['url']} created_at[{r['created_at']}]")
+        logging.info(f"total: {len(results)}")
+
     elif args.command == 'timeline':
         results = td.tweets_of_user(user=args.user, count=args.count)
-        logging.info(f"user tweets number: {len(results)}")
+        logging.info(f"user: {args.user}")
+        for r in results:
+            if 'media' in r['entities'].keys():
+                logging.info(f" id[{r['id']}] {r['entities']['media'][0]['url']} created_at[{r['created_at']}]")
+            else:
+                logging.info(f" id[{r['id']}] {r['entities']['urls'][0]['url']} created_at[{r['created_at']}]")
+        logging.info(f"total: {len(results)}")
+
     elif args.command == 'tweet':
         td.new_tweet(text=args.text)
     elif args.command == 'retweet':
