@@ -93,18 +93,18 @@ class CommandHandler:
 
     def timeline(self, user_name: str = None, count: int = 20):
         results = self._td.tweets_of_user(user=user_name, count=count)
-        logging.info(f"user: {args.user}")
+        logging.info(f"user: {user_name}")
         self._print_results(results)
 
 
     def search(self, topic: str = '', lang: str = 'en'):
-        results = td.popular_tweets(topic=args.popular, language=args.language)
-        logging.info(f"topic: {args.popular}")
+        results = td.popular_tweets(topic=topic, language=lang)
+        logging.info(f"topic: {topic}")
         self._print_results(results)
 
 
     def tweet(self, text: str = ''):
-        result = td.new_tweet(text=args.text)
+        result = td.new_tweet(text=text)
         self._print_result(result)
 
 
@@ -117,10 +117,12 @@ class CommandHandler:
     ):
         if tweet_id is not None:
             # retweet one tweet
+            logging.info(f"retweet: https://twitter.com/i/web/status/{tweet_id}")
             result = self._td.retweet(tweet_id=tweet_id)
             self._print_result(result)
         elif user is not None:
             # retweet tweets of a user
+            logging.info(f"retweet user: {user}")
             results = self._td.tweets_of_user(user=user, count=count)
             for r in results:
                 ret = self._td.retweet(tweet_id=r['id'])
@@ -128,6 +130,7 @@ class CommandHandler:
                 sleep(randint(5,20))
         else:
             # retweet tweets of a topic
+            logging.info(f"retweet {lang} topic: {topic}")
             results = self._td.popular_tweets(topic=topic, language=lang)
             for r in results:
                 ret = self._td.retweet(tweet_id=r['id'])
@@ -146,7 +149,8 @@ class CommandHandler:
     ):
         if at_user is None and tweet_id is None:
             # reply to a topic tweets
-            results = self._td.popular_tweets(topic=args.popular, language=lang)
+            logging.info(f"reply to {lang} topic: {topic}")
+            results = self._td.popular_tweets(topic=topic, language=lang)
             for r in results:
                 ret = self._td.reply_tweet(at_user=r['user']['screen_name'],
                                            tweet_id=r['id'],
@@ -155,6 +159,7 @@ class CommandHandler:
                 sleep(randint(15,40))
         elif tweet_id is None:
             # reply to a user's tweets
+            logging.info(f"reply to user: {at_user}")
             results = self._td.tweets_of_user(user=at_user, count=count)
             for r in results:
                 ret = self._td.reply_tweet(at_user=r['user']['screen_name'],
@@ -164,9 +169,9 @@ class CommandHandler:
                 sleep(randint(15,40))
         else:
             # reply to one tweet
-            result = self._td.reply_tweet(at_user=args.user, tweet_id=args.id, text=args.text)
+            logging.info(f"reply to tweet: https://twitter.com/i/web/status/{tweet_id}")
+            result = self._td.reply_tweet(at_user=at_user, tweet_id=tweet_id, text=text)
             self._print_result(result)
-            
 
 
 if __name__ == '__main__':
