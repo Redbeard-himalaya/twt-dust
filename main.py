@@ -1,7 +1,8 @@
 #!/usr/local/bin/python
 
 import logging
-from random import randint
+import random
+import string
 from time import sleep
 from twitter import *
 
@@ -79,6 +80,10 @@ class CommandHandler:
         self._td = td
 
 
+    def _trick_head(self):
+        return ''.join(random.sample(string.ascii_lowercase, 8)) + ' '
+
+
     def _print_result(self, result):
         logging.info(f" id[{result['id']}]"
                      f" https://twitter.com/i/web/status/{result['id']}"
@@ -125,17 +130,28 @@ class CommandHandler:
             logging.info(f"retweet user: {user}")
             results = self._td.tweets_of_user(user=user, count=count)
             for r in results:
-                ret = self._td.retweet(tweet_id=r['id'])
-                self._print_result(ret)
-                sleep(randint(5,20))
+                try:
+                    ret = self._td.retweet(tweet_id=r['id'])
+                    self._print_result(ret)
+                except TwitterHTTPError as e:
+                    if e.response_data['errors'][0]['code'] == 327:
+                        logging.warning(f" {e.response_data['errors'][0]['message']}"
+                                        f" https://twitter.com/i/web/status/{r['id']}")
+                finally:
+                    sleep(random.randint(5,20))
         else:
             # retweet tweets of a topic
             logging.info(f"retweet {lang} topic: {topic}")
             results = self._td.popular_tweets(topic=topic, language=lang)
             for r in results:
-                ret = self._td.retweet(tweet_id=r['id'])
-                self._print_result(ret)
-                sleep(randint(5,20))
+                try:
+                    ret = self._td.retweet(tweet_id=r['id'])
+                    self._print_result(ret)
+                except TwitterHTTPError as e:
+                    if e.response_data['errors'][0]['code'] == 327:
+                        logging.warning(f"{e.response_data['errors'][0]['message']} [{r['id']}]")
+                finally:
+                    sleep(random.randint(5,20))
 
 
     def reply(self,
@@ -154,9 +170,9 @@ class CommandHandler:
             for r in results:
                 ret = self._td.reply_tweet(at_user=r['user']['screen_name'],
                                            tweet_id=r['id'],
-                                           text=text)
+                                           text=self._trick_head() + text)
                 self._print_result(ret)
-                sleep(randint(15,40))
+                sleep(random.randint(15,40))
         elif tweet_id is None:
             # reply to a user's tweets
             logging.info(f"reply to user: {at_user}")
@@ -164,13 +180,15 @@ class CommandHandler:
             for r in results:
                 ret = self._td.reply_tweet(at_user=r['user']['screen_name'],
                                            tweet_id=r['id'],
-                                           text=text)
+                                           text=self._trick_head() + text)
                 self._print_result(ret)
-                sleep(randint(15,40))
+                sleep(random.randint(15,40))
         else:
             # reply to one tweet
             logging.info(f"reply to tweet: https://twitter.com/i/web/status/{tweet_id}")
-            result = self._td.reply_tweet(at_user=at_user, tweet_id=tweet_id, text=text)
+            result = self._td.reply_tweet(at_user=at_user,
+                                          tweet_id=tweet_id,
+                                          text=self._trick_head() + text)
             self._print_result(result)
 
 
