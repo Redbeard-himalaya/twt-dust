@@ -1,6 +1,8 @@
 #!/usr/local/bin/python
 
 import logging
+from random import randint
+from time import sleep
 from twitter import *
 
 class TwtDust:
@@ -123,12 +125,14 @@ class CommandHandler:
             for r in results:
                 ret = self._td.retweet(tweet_id=r['id'])
                 self._print_result(ret)
+                sleep(randint(5,20))
         else:
             # retweet tweets of a topic
             results = self._td.popular_tweets(topic=topic, language=lang)
             for r in results:
                 ret = self._td.retweet(tweet_id=r['id'])
                 self._print_result(ret)
+                sleep(randint(5,20))
 
 
     def reply(self,
@@ -148,6 +152,7 @@ class CommandHandler:
                                            tweet_id=r['id'],
                                            text=text)
                 self._print_result(ret)
+                sleep(randint(15,40))
         elif tweet_id is None:
             # reply to a user's tweets
             results = self._td.tweets_of_user(user=at_user, count=count)
@@ -156,6 +161,7 @@ class CommandHandler:
                                            tweet_id=r['id'],
                                            text=text)
                 self._print_result(ret)
+                sleep(randint(15,40))
         else:
             # reply to one tweet
             result = self._td.reply_tweet(at_user=args.user, tweet_id=args.id, text=args.text)
