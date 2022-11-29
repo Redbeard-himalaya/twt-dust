@@ -43,7 +43,7 @@ class TwtDust:
     def new_tweet(self, text: str = "Hello, my friends!"):
         # references:
         # https://developer.twitter.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-update
-        return self._t.statuses.update(status=txt)
+        return self._t.statuses.update(status=text)
 
 
     # post operation
@@ -52,8 +52,8 @@ class TwtDust:
         # https://developer.twitter.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-update
         if at_user is None or tweet_id is None:
             raise RuntimeError("at_user or tweet id is None in tweet reply")
-        return self._t.statuses.update(status=f"@{r['user']['screen_name']} {text}",
-                                       in_reply_to_status_id=r['id'])
+        return self._t.statuses.update(status=f"@{at_user} {text}",
+                                       in_reply_to_status_id=tweet_id)
 
 
     # post operation
@@ -70,16 +70,131 @@ class TwtDust:
         results.sort(key=lambda e: e['favorite_count'], reverse=True)
 
 
+class CommandHandler:
+    def __init__(self, td: TwtDust = None):
+        if td is None:
+            raise RuntimeError("TwtDust object is None")
+        self._td = td
+
+
+    def _print_result(self, result):
+        logging.info(f" id[{result['id']}]"
+                     f" https://twitter.com/i/web/status/{result['id']}"
+                     f" created_at[{result['created_at']}]"
+                     f" {result['user']['screen_name']}")
+        
+    def _print_results(self, results):
+        for r in results:
+            self._print_result(r)
+        logging.info(f"total: {len(results)}")
+
+
+    def timeline(self, user_name: str = None, count: int = 20):
+        results = self._td.tweets_of_user(user=user_name, count=count)
+        logging.info(f"user: {args.user}")
+        self._print_results(results)
+
+
+    def search(self, topic: str = '', lang: str = 'en'):
+        results = td.popular_tweets(topic=args.popular, language=args.language)
+        logging.info(f"topic: {args.popular}")
+        self._print_results(results)
+
+
+    def tweet(self, text: str = ''):
+        result = td.new_tweet(text=args.text)
+        self._print_result(result)
+
+
+    def retweet(self,
+                tweet_id: int = None,
+                user: str = None,
+                count: int = 20,
+                topic: str = '',
+                lang: str = 'en',
+    ):
+        if tweet_id is not None:
+            # retweet one tweet
+            result = self._td.retweet(tweet_id=tweet_id)
+            self._print_result(result)
+        elif user is not None:
+            # retweet tweets of a user
+            results = self._td.tweets_of_user(user=user, count=count)
+            for r in results:
+                ret = self._td.retweet(tweet_id=r['id'])
+                self._print_result(ret)
+        else:
+            # retweet tweets of a topic
+            results = self._td.popular_tweets(topic=topic, language=lang)
+            for r in results:
+                ret = self._td.retweet(tweet_id=r['id'])
+                self._print_result(ret)
+
+
+    def reply(self,
+              at_user: str = None,
+              tweet_id: int = 0,
+              topic: str = '',
+              lang: str = 'en',
+              user_name: str = None,
+              count: int = 20,
+              text: str = '',
+    ):
+        if at_user is None and tweet_id is None:
+            # reply to a topic tweets
+            results = self._td.popular_tweets(topic=args.popular, language=lang)
+            for r in results:
+                ret = self._td.reply_tweet(at_user=r['user']['screen_name'],
+                                           tweet_id=r['id'],
+                                           text=text)
+                self._print_result(ret)
+        elif tweet_id is None:
+            # reply to a user's tweets
+            results = self._td.tweets_of_user(user=at_user, count=count)
+            for r in results:
+                ret = self._td.reply_tweet(at_user=r['user']['screen_name'],
+                                           tweet_id=r['id'],
+                                           text=text)
+                self._print_result(ret)
+        else:
+            # reply to one tweet
+            result = self._td.reply_tweet(at_user=args.user, tweet_id=args.id, text=args.text)
+            self._print_result(result)
+            
+
+
 if __name__ == '__main__':
     import argparse
     import os
     import sys
 
+    example_text = '''example:
+
+ main.py help
+ main.py timeline -u <user_name> -c <count>
+ main.py search -p <topic> -l [cs|en]
+ main.py tweet -t <text>
+ main.py retweet -i <id>
+ main.py retweet -u <user_name> [-c count]
+ main.py retweet -p <topic> [-l [en|cs]]
+ main.py reply -t <text> -u <user_name> -i <id>
+ main.py reply -t <text> -u <user_name> [-c count]
+ main.py reply -t <text> -p <topic> [-l [en|cs]]
+'''
+
     parser = argparse.ArgumentParser(
         description='A tool for: searching twitter timeline and popular tweets; tweeting; retweeting; replying tweets',
+        epilog=example_text,
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('command', metavar='command',
-                        choices=['retweet', 'reply', 'search', 'timeline', 'tweet', 'help'],
+                        choices=[
+                            'reply',
+                            'retweet',
+                            'search',
+                            'timeline',
+                            'tweet',
+                            'help',
+                        ],
                         help=
                         'reply:    reply a tweet;\n'
                         'retweet:  retweet a tweet;\n'
@@ -116,32 +231,26 @@ if __name__ == '__main__':
                  access_token_secret=os.getenv('ACCESS_TOKEN_SECRET'),
                  api_key=os.getenv('API_KEY'),
                  api_key_secret=os.getenv('API_KEY_SECRET'))
+    hd = CommandHandler(td)
 
     if args.command == 'search':
-        results = td.popular_tweets(topic=args.popular, language=args.language)
-        logging.info(f"topic: {args.popular}")
-        for r in results:
-            if 'media' in r['entities'].keys():
-                logging.info(f" id[{r['id']}] {r['entities']['media'][0]['url']} created_at[{r['created_at']}]")
-            else:
-                logging.info(f" id[{r['id']}] {r['entities']['urls'][0]['url']} created_at[{r['created_at']}]")
-        logging.info(f"total: {len(results)}")
-
+        hd.search(topic=args.popular, lang=args.language)
     elif args.command == 'timeline':
-        results = td.tweets_of_user(user=args.user, count=args.count)
-        logging.info(f"user: {args.user}")
-        for r in results:
-            if 'media' in r['entities'].keys():
-                logging.info(f" id[{r['id']}] {r['entities']['media'][0]['url']} created_at[{r['created_at']}]")
-            else:
-                logging.info(f" id[{r['id']}] {r['entities']['urls'][0]['url']} created_at[{r['created_at']}]")
-        logging.info(f"total: {len(results)}")
-
+        hd.timeline(user_name=args.user, count=args.count)
     elif args.command == 'tweet':
-        td.new_tweet(text=args.text)
+        hd.tweet(text=args.text)
     elif args.command == 'retweet':
-        td.retweet(tweet_id=args.id)
+        hd.retweet(tweet_id=args.id,
+                   user=args.user,
+                   count=args.count,
+                   topic=args.popular,
+                   lang=args.language)
     elif args.command == 'reply':
-        td.reply_tweet(at_user=args.user, tweet_id=args.id, text=args.text)
+        hd.reply(at_user=args.user,
+                 tweet_id=args.id,
+                 topic=args.popular,
+                 lang=args.language,
+                 count=args.count,
+                 text=args.text)
     elif args.command == 'help':
         parser.print_help(sys.stderr)
