@@ -137,6 +137,8 @@ class CommandHandler:
                     if e.response_data['errors'][0]['code'] == 327:
                         logging.warning(f" {e.response_data['errors'][0]['message']}"
                                         f" https://twitter.com/i/web/status/{r['id']}")
+                    else:
+                        raise e
                 finally:
                     sleep(random.randint(5,20))
         else:
@@ -149,7 +151,10 @@ class CommandHandler:
                     self._print_result(ret)
                 except TwitterHTTPError as e:
                     if e.response_data['errors'][0]['code'] == 327:
-                        logging.warning(f"{e.response_data['errors'][0]['message']} [{r['id']}]")
+                        logging.warning(f" {e.response_data['errors'][0]['message']}"
+                                        f" https://twitter.com/i/web/status/{r['id']}")
+                    else:
+                        raise e
                 finally:
                     sleep(random.randint(5,20))
 
@@ -168,11 +173,19 @@ class CommandHandler:
             logging.info(f"reply to {lang} topic: {topic}")
             results = self._td.popular_tweets(topic=topic, language=lang)
             for r in results:
-                ret = self._td.reply_tweet(at_user=r['user']['screen_name'],
-                                           tweet_id=r['id'],
-                                           text=self._trick_head() + text)
-                self._print_result(ret)
-                sleep(random.randint(15,40))
+                try:
+                    ret = self._td.reply_tweet(at_user=r['user']['screen_name'],
+                                               tweet_id=r['id'],
+                                               text=self._trick_head() + text)
+                    self._print_result(ret)
+                except TwitterHTTPError as e:
+                    if e.response_data['errors'][0]['code'] == 186:
+                        logging.warning(f" {e.response_data['errors'][0]['message']}"
+                                        f" https://twitter.com/i/web/status/{r['id']}")
+                    else:
+                        raise e
+                finally:
+                    sleep(random.randint(15,40))
         elif tweet_id is None:
             # reply to a user's tweets
             logging.info(f"reply to user: {at_user}")
