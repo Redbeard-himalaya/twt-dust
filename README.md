@@ -38,3 +38,14 @@ Now, you can run this project. Follow below instructions to run:
  - Get help
 	 - docker-compose run --rm tw help
 	 - docker-compose run --rm tw -h
+
+## Examples
+
+ - To retweet latest (20 by default) tweets of user Mina88117194
+	 - do docker-compose run --rm tw retweet -u Mina88117194
+ - To reply latest 5 tweets of user Mina88117194
+	 - docker-compose run --rm tw reply -u Mina88117194 -c 5 -t 'Thank you very much. NFSC fellow'
+ - To search popular tweet relevant to 'ccp'
+	 - docker-compose run --rm tw search -p 'ccp'
+ - To search popular tweet relevant to 'ccp' and tweet geocode is within NewYork 100km range
+	 - docker-compose run --rm tw search -p 'ccp' -g '40.73103330314383,-74.00377049618126,100km'

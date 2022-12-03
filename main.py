@@ -33,13 +33,24 @@ class TwtDust:
 
 
     # get operation
-    def popular_tweets(self, topic: str = "", language: str = "en"):
+    def popular_tweets(self, topic: str = "", language: str = "en", geocode: str = None):
         # references:
         # https://developer.twitter.com/en/docs/twitter-api/v1/tweets/search/overview
         # https://developer.twitter.com/en/docs/twitter-api/v1/rules-and-filtering/build-standard-queries
         if language != 'en' and language != 'cs':
             raise RuntimeError("language is not en (English) and cs (Chinese)")
-        return self._t.search.tweets(q=topic, result_type='popular', lang=language)['statuses']
+        if geocode is None:
+            return self._t.search.tweets(q=topic,
+                                         result_type='popular',
+                                         lang=language,
+            )['statuses']
+        else:
+            logging.info(f'geocode [{geocode}]')
+            return self._t.search.tweets(q=topic,
+                                         result_type='popular',
+                                         lang=language,
+                                         geocode=geocode,
+            )['statuses']
 
 
     # post operation
@@ -85,6 +96,7 @@ class CommandHandler:
 
 
     def _print_result(self, result):
+        # logging.info(f" result: {result}")
         logging.info(f" id[{result['id']}]"
                      f" https://twitter.com/i/web/status/{result['id']}"
                      f" created_at[{result['created_at']}]"
@@ -102,9 +114,13 @@ class CommandHandler:
         self._print_results(results)
 
 
-    def search(self, topic: str = '', lang: str = 'en'):
-        results = td.popular_tweets(topic=topic, language=lang)
-        logging.info(f"topic: {topic}")
+    def search(self, topic: str = '', lang: str = 'en', geocode: str = None):
+        if geocode is None:
+            logging.info(f"topic: {topic}")
+            results = td.popular_tweets(topic=topic, language=lang)
+        else:
+            logging.info(f"topic: {topic} {geocode}")
+            results = td.popular_tweets(topic=topic, language=lang, geocode=geocode)
         self._print_results(results)
 
 
@@ -214,7 +230,7 @@ if __name__ == '__main__':
 
  main.py help
  main.py timeline -u <user_name> -c <count>
- main.py search -p <topic> -l [cs|en]
+ main.py search -p <topic> [-l [cs|en]] [-g geocode]
  main.py tweet -t <text>
  main.py retweet -i <id>
  main.py retweet -u <user_name> [-c count]
@@ -246,6 +262,8 @@ if __name__ == '__main__':
                         'help:     show this help;')
     parser.add_argument('-c', '--count', type=int, nargs='?', default=20,
                         help='count of tweets returned by timeline')
+    parser.add_argument('-g', '--geocode', type=str, nargs='?', default=None,
+                        help='geometry code of the area to search')
     parser.add_argument('-i', '--id', type=int, nargs='?', default=None,
                         help='tweet id to reply or retweet')
     parser.add_argument('-l', '--language', type=str, nargs='?', default='en',
@@ -276,7 +294,7 @@ if __name__ == '__main__':
     hd = CommandHandler(td)
 
     if args.command == 'search':
-        hd.search(topic=args.popular, lang=args.language)
+        hd.search(topic=args.popular, lang=args.language, geocode=args.geocode)
     elif args.command == 'timeline':
         hd.timeline(user_name=args.user, count=args.count)
     elif args.command == 'tweet':
