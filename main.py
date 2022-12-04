@@ -37,8 +37,8 @@ class TwtDust:
         # references:
         # https://developer.twitter.com/en/docs/twitter-api/v1/tweets/search/overview
         # https://developer.twitter.com/en/docs/twitter-api/v1/rules-and-filtering/build-standard-queries
-        if language != 'en' and language != 'cs':
-            raise RuntimeError("language is not en (English) and cs (Chinese)")
+        if language != 'en' and language != 'zh-cn' and language != 'zh-tw':
+            raise RuntimeError("language is not en (English), zh-cn (Chinese Simplified), nor zh-tw (Chinese Traditional)")
         if geocode is None:
             return self._t.search.tweets(q=topic,
                                          result_type='popular',
@@ -230,14 +230,14 @@ if __name__ == '__main__':
 
  main.py help
  main.py timeline -u <user_name> -c <count>
- main.py search -p <topic> [-l [cs|en]] [-g geocode]
+ main.py search -p <topic> [-l [en|zh-cn|zh-tw]] [-g geocode]
  main.py tweet -t <text>
  main.py retweet -i <id>
  main.py retweet -u <user_name> [-c count]
- main.py retweet -p <topic> [-l [en|cs]]
+ main.py retweet -p <topic> [-l [en|zh-cn|zh-tw]]
  main.py reply -t <text> -u <user_name> -i <id>
  main.py reply -t <text> -u <user_name> [-c count]
- main.py reply -t <text> -p <topic> [-l [en|cs]]
+ main.py reply -t <text> -p <topic> [-l [en|zh-cn|zh-tw]]
 '''
 
     parser = argparse.ArgumentParser(
@@ -267,6 +267,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--id', type=int, nargs='?', default=None,
                         help='tweet id to reply or retweet')
     parser.add_argument('-l', '--language', type=str, nargs='?', default='en',
+                        choices=['en', 'zh-cn', 'zh-tw'],
                         help='language of the popular tweets')
     parser.add_argument('-p', '--popular', type=str, nargs='?', default='',
                         help='popular tweets to search')

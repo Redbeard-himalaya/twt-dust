@@ -45,7 +45,13 @@ Now, you can run this project. Follow below instructions to run:
 	 - do docker-compose run --rm tw retweet -u Mina88117194
  - To reply latest 5 tweets of user Mina88117194
 	 - docker-compose run --rm tw reply -u Mina88117194 -c 5 -t 'Thank you very much. NFSC fellow'
+ - To reply latest 5 tweets in relevant to '共产党'
+	 - docker-compose run --rm tw reply -p '共产党' -l zh-cn -c 5 -t '中国共产党 != 中国；中国共产党 != 中国人'
  - To search popular tweet relevant to 'ccp'
 	 - docker-compose run --rm tw search -p 'ccp'
  - To search popular tweet relevant to 'ccp' and tweet geocode is within NewYork 100km range
 	 - docker-compose run --rm tw search -p 'ccp' -g '40.73103330314383,-74.00377049618126,100km'
+ - To search popular tweets in Simplified Chinese
+	 - docker-compose run --rm tw search -p '上海' -l zh-cn
+ - To search popular tweets in Tranditional Chinese
+	 - docker-compose run --rm tw search -p '上海' -l zh-tw
