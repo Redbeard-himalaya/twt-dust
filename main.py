@@ -75,6 +75,11 @@ class TwtDust:
         return self._t.statuses.retweet(id=tweet_id)
 
 
+    # post operation
+    def like(self, tweet_id: int = None):
+        return self._t.favorites.create(_id=tweet_id)
+
+
     # helper operation
     def sort_by(self, results = None, field: str = None):
         if not isinstance(results, list):
@@ -139,6 +144,7 @@ class CommandHandler:
         if tweet_id is not None:
             # retweet one tweet
             logging.info(f"retweet: https://twitter.com/i/web/status/{tweet_id}")
+            self._td.like(tweet_id=tweet_id)
             result = self._td.retweet(tweet_id=tweet_id)
             self._print_result(result)
         elif user is not None:
@@ -147,6 +153,7 @@ class CommandHandler:
             results = self._td.tweets_of_user(user=user, count=count)
             for r in results:
                 try:
+                    self._td.like(tweet_id=r['id'])
                     ret = self._td.retweet(tweet_id=r['id'])
                     self._print_result(ret)
                 except TwitterHTTPError as e:
@@ -163,6 +170,7 @@ class CommandHandler:
             results = self._td.popular_tweets(topic=topic, language=lang)
             for r in results:
                 try:
+                    self._td.like(tweet_id=r['id'])
                     ret = self._td.retweet(tweet_id=r['id'])
                     self._print_result(ret)
                 except TwitterHTTPError as e:
