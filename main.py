@@ -203,7 +203,8 @@ class CommandHandler:
                                                text=self._trick_head() + text)
                     self._print_result(ret)
                 except TwitterHTTPError as e:
-                    if e.response_data['errors'][0]['code'] == 186:
+                    if e.response_data['errors'][0]['code'] == 186 \
+                       or e.response_data['errors'][0]['code'] == 433:
                         logging.warning(f" {e.response_data['errors'][0]['message']}"
                                         f" https://twitter.com/i/web/status/{r['id']}")
                     else:
