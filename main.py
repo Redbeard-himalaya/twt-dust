@@ -3,10 +3,22 @@
 import logging
 import random
 import string
+import sys
 from time import sleep
 from twitter import *
 
 class TwtDust:
+    IGNORABLE_EXCEPTION_CODE = [
+        139, # You have already favorited this status
+        186, # identical reply text
+        327, # You have already retweeted this Tweet
+        385, # You attempted to reply to a Tweet that is deleted or not visible to you
+        433, # The original Tweet author restricted who can reply to this Tweet
+    ]
+    PANIC_EXCEPTION_CODE = [
+        261, # Application cannot perform write actions
+    ]
+    
     def __init__(self,
                  access_token: str = None,
                  access_token_secret: str = None,
@@ -66,18 +78,60 @@ class TwtDust:
         # https://developer.twitter.com/en/docs/twitter-api/v1/tweets/post-and-engage/api-reference/post-statuses-update
         if at_user is None or tweet_id is None:
             raise RuntimeError("at_user or tweet id is None in tweet reply")
-        return self._t.statuses.update(status=f"@{at_user} {text}",
-                                       in_reply_to_status_id=tweet_id)
+        try:
+            return self._t.statuses.update(status=f"@{at_user} {text}",
+                                           in_reply_to_status_id=tweet_id)
+        except TwitterHTTPError as e:
+            code = e.response_data['errors'][0]['code']
+            msg = e.response_data['errors'][0]['message']
+            if code in self.IGNORABLE_EXCEPTION_CODE:
+                logging.warning(f" {code} {msg}"
+                                f" https://twitter.com/i/web/status/{tweet_id}")
+                return None
+            elif code in self.PANIC_EXCEPTION_CODE:
+                logging.error(f" {code} {msg}"
+                              f" https://twitter.com/i/web/status/{tweet_id}")
+                sys.exit(f" exit for panic exception")
+            else:
+                raise e
 
 
     # post operation
     def retweet(self, tweet_id: int = None):
-        return self._t.statuses.retweet(id=tweet_id)
+        try:
+            return self._t.statuses.retweet(id=tweet_id)
+        except TwitterHTTPError as e:
+            code = e.response_data['errors'][0]['code']
+            msg = e.response_data['errors'][0]['message']
+            if code in self.IGNORABLE_EXCEPTION_CODE:
+                logging.warning(f" {code} {msg}"
+                                f" https://twitter.com/i/web/status/{tweet_id}")
+                return None
+            elif code in self.PANIC_EXCEPTION_CODE:
+                logging.error(f" {code} {msg}"
+                              f" https://twitter.com/i/web/status/{tweet_id}")
+                sys.exit(f" exit for panic exception")
+            else:
+                raise e
 
 
     # post operation
     def like(self, tweet_id: int = None):
-        return self._t.favorites.create(_id=tweet_id)
+        try:
+            return self._t.favorites.create(_id=tweet_id)
+        except TwitterHTTPError as e:
+            code = e.response_data['errors'][0]['code']
+            msg = e.response_data['errors'][0]['message']
+            if code in self.IGNORABLE_EXCEPTION_CODE:
+                logging.warning(f" {code} {msg}"
+                                f" https://twitter.com/i/web/status/{tweet_id}")
+                return None
+            elif code in self.PANIC_EXCEPTION_CODE:
+                logging.error(f" {code} {msg}"
+                              f" https://twitter.com/i/web/status/{tweet_id}")
+                sys.exit(f" exit for panic exception")
+            else:
+                raise e
 
 
     # helper operation
@@ -102,11 +156,14 @@ class CommandHandler:
 
     def _print_result(self, result):
         # logging.info(f" result: {result}")
+        if result is None:
+            return
         logging.info(f" id[{result['id']}]"
                      f" https://twitter.com/i/web/status/{result['id']}"
                      f" created_at[{result['created_at']}]"
                      f" {result['user']['screen_name']}")
-        
+
+
     def _print_results(self, results):
         for r in results:
             self._print_result(r)
@@ -152,35 +209,19 @@ class CommandHandler:
             logging.info(f"retweet user: {user}")
             results = self._td.tweets_of_user(user=user, count=count)
             for r in results:
-                try:
-                    self._td.like(tweet_id=r['id'])
-                    ret = self._td.retweet(tweet_id=r['id'])
-                    self._print_result(ret)
-                except TwitterHTTPError as e:
-                    if e.response_data['errors'][0]['code'] == 327:
-                        logging.warning(f" {e.response_data['errors'][0]['message']}"
-                                        f" https://twitter.com/i/web/status/{r['id']}")
-                    else:
-                        raise e
-                finally:
-                    sleep(random.randint(5,20))
+                self._td.like(tweet_id=r['id'])
+                ret = self._td.retweet(tweet_id=r['id'])
+                self._print_result(ret)
+                sleep(random.randint(5,20))
         else:
             # retweet tweets of a topic
             logging.info(f"retweet {lang} topic: {topic}")
             results = self._td.popular_tweets(topic=topic, language=lang)
             for r in results:
-                try:
-                    self._td.like(tweet_id=r['id'])
-                    ret = self._td.retweet(tweet_id=r['id'])
-                    self._print_result(ret)
-                except TwitterHTTPError as e:
-                    if e.response_data['errors'][0]['code'] == 327:
-                        logging.warning(f" {e.response_data['errors'][0]['message']}"
-                                        f" https://twitter.com/i/web/status/{r['id']}")
-                    else:
-                        raise e
-                finally:
-                    sleep(random.randint(5,20))
+                self._td.like(tweet_id=r['id'])
+                ret = self._td.retweet(tweet_id=r['id'])
+                self._print_result(ret)
+                sleep(random.randint(5,20))
 
 
     def reply(self,
@@ -197,20 +238,11 @@ class CommandHandler:
             logging.info(f"reply to {lang} topic: {topic}")
             results = self._td.popular_tweets(topic=topic, language=lang)
             for r in results:
-                try:
-                    ret = self._td.reply_tweet(at_user=r['user']['screen_name'],
-                                               tweet_id=r['id'],
-                                               text=self._trick_head() + text)
-                    self._print_result(ret)
-                except TwitterHTTPError as e:
-                    if e.response_data['errors'][0]['code'] == 186 \
-                       or e.response_data['errors'][0]['code'] == 433:
-                        logging.warning(f" {e.response_data['errors'][0]['message']}"
-                                        f" https://twitter.com/i/web/status/{r['id']}")
-                    else:
-                        raise e
-                finally:
-                    sleep(random.randint(15,40))
+                ret = self._td.reply_tweet(at_user=r['user']['screen_name'],
+                                           tweet_id=r['id'],
+                                           text=self._trick_head() + text)
+                self._print_result(ret)
+                sleep(random.randint(15,40))
         elif tweet_id is None:
             # reply to a user's tweets
             logging.info(f"reply to user: {at_user}")
@@ -233,7 +265,6 @@ class CommandHandler:
 if __name__ == '__main__':
     import argparse
     import os
-    import sys
 
     example_text = '''example:
 
