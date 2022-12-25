@@ -6,6 +6,7 @@ import string
 import sys
 from time import sleep
 from twitter import *
+import urllib.error
 
 class TwtDust:
     IGNORABLE_EXCEPTION_CODE = [
@@ -94,6 +95,9 @@ class TwtDust:
                 sys.exit(f" exit for panic exception")
             else:
                 raise e
+        except urllib.error.URLError as ue:
+            logging.warning(f"{ue}")
+            return None
 
 
     # post operation
@@ -113,6 +117,9 @@ class TwtDust:
                 sys.exit(f" exit for panic exception")
             else:
                 raise e
+        except urllib.error.URLError as ue:
+            logging.warning(f"{ue}")
+            return None
 
 
     # post operation
